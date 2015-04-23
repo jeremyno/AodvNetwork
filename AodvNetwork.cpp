@@ -105,6 +105,9 @@ boolean BroadcastNetwork::getPacket(AodvPacket& out) {
     packetTrack[trackIndex].src = readPkt.source;
     packetTrack[trackIndex].seq = readPkt.routeSeq;
     trackIndex++;
+    if (trackIndex > BROADCAST_MEMORY) {
+      trackIndex = 0;
+    }
     
     if (readPkt.destination == myaddr && !alreadySeen) {
       return true;
