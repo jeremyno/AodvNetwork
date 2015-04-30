@@ -23,6 +23,12 @@
 #define BROADCAST_ADDR 255
 #define PAYLOAD_SIZE MAX_PACKET_LEN-7
 
+#define AODV_CMD_DATA 0
+#define AODV_CMD_ARP 1
+#define AODV_CMD_ARPR 2
+#define AODV_CMD_RREQ 3
+#define AODV_CMD_RRESP 4
+
 class AodvPacket {
   public:
     AodvPacket();
@@ -65,11 +71,11 @@ class BroadcastNetwork {
     void init();
     
     byte getMyAddress();
-    
+
+    byte myaddr;    
   private:
     byte seq;
     SeenPackets packetTrack[BROADCAST_MEMORY];
     byte trackIndex;
-    byte myaddr;
 };
 
