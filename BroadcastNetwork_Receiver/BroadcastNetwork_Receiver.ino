@@ -4,7 +4,7 @@
 #include <nRF24L01.h>
 #include <MirfHardwareSpiDriver.h>
 
-#define MY_ADDR 4
+#define MY_ADDR 0
 
 /**
  * This sketch uses an instance of BroadcastNetwork to receive any messages
