@@ -13,8 +13,12 @@
  * if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 
  * 02110-1301 USA
  */
+#ifndef AODV_NETWORK_H
+#define AODV_NETWORK_H
+
 #include "arduino.h"
 #include <Mirf.h>
+#include "MirfUtils.h"
 
 //#define DEBUG_BCNT
 #ifdef DEBUG_BCNT
@@ -37,6 +41,8 @@
 #define AODV_CMD_DESCRIBE 2
 #define AODV_CMD_RREQ 3
 #define AODV_CMD_RRESP 4
+#define AODV_CMD_PROTO_UDP 5
+#define AODV_CMD_PROTO_TCP 6
 
 // 8000 - 2 min
 // 20000 - 5 min
@@ -141,7 +147,6 @@ class BroadcastNetwork {
 
     void setAddr(byte addr);
     void setRFPwrLevel(byte powerLevel);
-
   private:
     void updateRoute(byte destination, byte hops, byte seq, byte nextHop);
     byte tryRoute(byte destination);
@@ -160,3 +165,4 @@ class BroadcastNetwork {
     void setConfigBits(byte reg, byte fieldMask, byte value);
     //void setMirfRetries(byte retries, byte delay);
 };
+#endif

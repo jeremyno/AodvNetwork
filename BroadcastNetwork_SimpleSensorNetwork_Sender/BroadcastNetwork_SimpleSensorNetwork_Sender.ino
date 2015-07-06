@@ -4,8 +4,8 @@
 #include <nRF24L01.h>
 #include <MirfHardwareSpiDriver.h>
 #include <EEPROM.h>
-//#include <SerialDebugOn.h>
-#include <DebugOff.h>
+#define DEBUG_ON
+#include <SerialDebugOn.h>
 
 #define CE 8
 #define CSN 7
@@ -19,7 +19,7 @@
 BroadcastNetwork network(0);
 
 void setup(){
-  network.myaddr = EEPROM.read(0);
+  network.setAddr(EEPROM.read(0));
 
   debugBegin(9600);
   debugln(String("I am ")+network.getMyAddress());
@@ -44,6 +44,8 @@ void loop(){
     payload.sid=analogChannel;
     payload.sval=sensorReading;
     pkt.setPayload((byte*)&payload,sizeof(SensorValuePayload));
+    debug("Sending ");
+    debugln(sensorReading);
     network.sendPacket(pkt);
     delay(random(10));
   }
@@ -51,7 +53,7 @@ void loop(){
   long start = millis();
   
   while (millis()-start < READ_DELAY) {
-    if (network.getPacket(pkt) && pkt.destination == network.myaddr) {
+    if (network.getPacket(pkt) && pkt.destination == network.getMyAddress()) {
       SensorValuePayload payload;
       pkt.readPayload((byte*)&payload,sizeof(SensorValuePayload));
       debug("RECV ");

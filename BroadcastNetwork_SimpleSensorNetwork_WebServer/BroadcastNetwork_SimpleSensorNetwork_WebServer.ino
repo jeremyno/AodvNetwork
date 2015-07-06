@@ -18,8 +18,10 @@
 #include <nRF24L01.h>
 #include <MirfHardwareSpiDriver.h>
 #include <EEPROM.h>
-//#include <SerialDebugOn.h>
-#include <DebugOff.h>
+//#define DEBUG_ON
+#include <SerialDebugOn.h>
+
+//#define PUSH_DEBUG
 
 #define CE 8
 #define CSN 7
@@ -36,6 +38,7 @@ IPAddress ip(192, 168, 1, 177);
 // with the IP address and port you want to use
 // (port 80 is default for HTTP):
 EthernetServer server(80);
+byte lastidx = 0;
 
 BroadcastNetwork network(0);
 
@@ -59,12 +62,9 @@ byte nextEntryIndex=0;
 
 void setup() {
   // Open serial communications and wait for port to open:
-  network.myaddr = EEPROM.read(0);
+  network.setAddr(EEPROM.read(0));
 
   debugBegin(9600);
-//  while (!Serial) {
-//    ; // wait for serial port to connect. Needed for Leonardo only
-//  }
 
   debugln(String("I am ")+network.getMyAddress());
   Mirf.spi = &MirfHardwareSpi;
@@ -86,6 +86,45 @@ void setup() {
   debugln(Ethernet.localIP());
 }
 
+void writeJson(EthernetClient& cli) {
+  cli.println("{ entries : [");
+  // output the value of each analog input pin  
+  long now = millis();
+  boolean comma = false;
+
+  for (int i = 0; i < SensorValueEntryLogSize; i++) {
+    SensorValueEntry& e = SensorValueEntryTable[i];
+    if (e.mote == 0 && e.sid == 0) {
+      continue;
+    }
+    if (comma) {
+      cli.println(",");
+    }
+    cli.print(String("{mote:\"") + e.mote + "\", sensor:\""+e.sid+"\", value:\""+e.sval+"\", age:\""+(now - e.timestamp)+"\"}");
+    comma = true;
+  }
+  cli.println();
+  cli.println("]}");
+}
+
+void writeDataUrl(EthernetClient& cli) {
+  // output the value of each analog input pin  
+  boolean comma = false;
+  cli.print(millis());
+  cli.print("=");
+
+  for (int i = 0; i < SensorValueEntryLogSize; i++) {
+    SensorValueEntry& e = SensorValueEntryTable[i];
+    if (e.mote == 0 && e.sid == 0) {
+      continue;
+    }
+    if (comma) {
+      cli.print("-");
+    }
+    cli.print(String("mote:") + e.mote + ".sensor:"+e.sid+".value:"+e.sval+".timestamp:"+e.timestamp);
+    comma = true;
+  }
+}
 
 void loop() {
   // listen for incoming clients
@@ -111,33 +150,7 @@ void loop() {
             client.println("Connection: close");  // the connection will be closed after completion of the response
             client.println("Refresh: 5");  // refresh the page automatically every 5 sec
             client.println();
-            client.println("{ entries : [");
-            // output the value of each analog input pin
-            
-            int entryCount = 0;
-            boolean done = false;
-            
-            while (entryCount < SensorValueEntryLogSize) {
-              SensorValueEntry& e = SensorValueEntryTable[entryCount];
-              
-              if (e.mote == 0 && e.sid == 0) {
-                break;
-              }
-              
-              entryCount++;
-            }
-            
-            long now = millis();
-            for (int i = 0; i < entryCount; i++) {
-              SensorValueEntry& e = SensorValueEntryTable[i];
-              client.print(String("{mote:\"") + e.mote + "\", sensor:\""+e.sid+"\", value:\""+e.sval+"\", age:\""+(now - e.timestamp)+"\"}");
-              if (i == entryCount-1) {
-                client.println();
-              } else {
-                client.println(",");
-              }
-            }
-            client.println("]}");
+            writeJson(client);
           } else if (getLine.startsWith("/send?")) {
             getLine=getLine.substring(6);
             int mote = -1;
@@ -216,27 +229,32 @@ void loop() {
   while (network.getPacket(rpkt)) {   
     SensorValuePayload payload; 
     rpkt.readPayload((byte*)&payload,sizeof(SensorValuePayload));
+    long ts = millis();
     
     bool found = false;
-    for(byte i = 0; i < SensorValueEntryLogSize; i++) {
+    byte idx;
+    
+    /*for(byte i = 0; i < SensorValueEntryLogSize && !found; i++) {
       SensorValueEntry& e = SensorValueEntryTable[i];
       if (e.mote == rpkt.source && e.sid == payload.sid) {
         e.sval = payload.sval;
-        e.timestamp = millis();
+        e.timestamp = ts;
+        idx = i;
         found = true;
       }
-    }
+    }*/
     
     if (! found) {
       SensorValueEntryTable[nextEntryIndex].mote = rpkt.source;
       SensorValueEntryTable[nextEntryIndex].sid = payload.sid;
       SensorValueEntryTable[nextEntryIndex].sval = payload.sval;
-      SensorValueEntryTable[nextEntryIndex].timestamp=millis();
+      SensorValueEntryTable[nextEntryIndex].timestamp=ts;
+      idx = nextEntryIndex;
       nextEntryIndex++;
       
       if (nextEntryIndex >= SensorValueEntryLogSize) {
         nextEntryIndex = 0;
       }    
-    }
+    }    
   }
 }

@@ -147,6 +147,7 @@ BroadcastNetwork::BroadcastNetwork(byte MyAddr) : trackIndex(0), myaddr(MyAddr),
 void BroadcastNetwork::init() {
   Mirf.init();
   setAddr(myaddr);
+  setCRC2bytes(true);
   Mirf.setRADDR((byte*)"bcast");
   Mirf.setTADDR((byte*)"bcast");
   // don't auto ack 
@@ -262,11 +263,11 @@ boolean BroadcastNetwork::getPacket(AodvPacket& out) {
 
     // we don't add neighbors we've heard directly because it causes issues    
     // if they have higher transmit power than us.
-
+    
     if (readPkt.destination == myaddr && !alreadySeen) {
       return true;
     }
-            
+    
     readPkt.hopCount++;
     readPkt.lastHop = myaddr;
     
@@ -275,6 +276,7 @@ boolean BroadcastNetwork::getPacket(AodvPacket& out) {
     debugln(String("  Should forward? ") + forward);
     
     if (!forward) {
+      debugln("  should not forward. giving up.");
       return false;
     }
     
@@ -282,7 +284,7 @@ boolean BroadcastNetwork::getPacket(AodvPacket& out) {
     
     debugln("  Forwarded...");
     transmit(readPkt);   
-                    
+    
     if (readPkt.destination == BROADCAST_ADDR) {
       return true;
     } else {

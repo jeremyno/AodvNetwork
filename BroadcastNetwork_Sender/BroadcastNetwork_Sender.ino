@@ -3,7 +3,11 @@
 #include <Mirf.h>
 #include <nRF24L01.h>
 #include <MirfHardwareSpiDriver.h>
-#include <MirfUtils.h>
+//#include <MirfUtils.h>
+
+#define UPDATE_TIME 10000
+//#define DEBUG_ON
+#include <SerialDebugOn.h>
 
 /**
  * This sketch broadcasts information to all of the BroadcastNetwork
@@ -13,18 +17,23 @@
 BroadcastNetwork network(1);
 
 void setup(){
-  Serial.begin(9600);
-  Serial.println(String("I am ")+network.getMyAddress());
+  debugBegin(9600);
+  debugln(String("I am ")+network.getMyAddress());
   Mirf.spi = &MirfHardwareSpi;  
   network.init();
-  setRFPwrLevel(0);
+  network.setRFPwrLevel(0);
 }
-
+  
 void loop(){
-  AodvPacket pkt = AodvPacket(0, 0);
+  AodvPacket pkt = AodvPacket(3, AODV_CMD_DATA);
   long time = millis();
-  pkt.setPayload((byte*)&time,sizeof(long));
+  pkt.setPayload(time);
 
   network.sendPacket(pkt);
-  delay(3000);
+  debugln(String("Sent ") + time);
+  
+  
+  while (millis() - time < UPDATE_TIME) {
+    network.getPacket(pkt);
+  }
 }

@@ -4,6 +4,7 @@
 #include <nRF24L01.h>
 #include <MirfHardwareSpiDriver.h>
 #include <EEPROM.h>
+#define DEBUG_ON
 #include <SerialDebugOn.h>
 //#include <DebugOff.h>
 
@@ -31,7 +32,7 @@ class SensorValueEntry {
 };
 
 void setup(){
-  network.myaddr = EEPROM.read(0);
+  network.setAddr(EEPROM.read(0));
   
   debugBegin(9600);
   debugln(String("I am ")+network.getMyAddress());
